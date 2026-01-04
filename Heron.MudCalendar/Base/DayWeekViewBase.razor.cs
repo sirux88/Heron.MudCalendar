@@ -21,8 +21,8 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
 
     protected virtual int DaysInView => 7;
     protected virtual CalendarView View => CalendarView.Week;
-    protected virtual string HeaderClassname => string.Empty;
-    protected virtual string GridClassname => string.Empty;
+    protected virtual string HeaderClassname => "mud-cal-week-header";
+    protected virtual string GridClassname => "mud-cal-week-grid";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -51,13 +51,17 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
             .AddClass(GridClassname)
             .Build();
 
+    protected string TimeClass =>
+        new CssBuilder("mud-cal-grid")
+            .AddClass("mud-cal-day-time-column")
+            .Build();
+
     /// <summary>
     /// Styles added to each day.
     /// </summary>
     /// <param name="calendarCell">The cell.</param>
-    /// <param name="row">The current row in the table being rendered.</param>
     /// <returns></returns>
-    protected virtual string DayStyle(CalendarCell<T> calendarCell, int row)
+    protected virtual string DayStyle(CalendarCell<T> calendarCell)
     {
         return new StyleBuilder()
             .AddStyle("border-left",
@@ -68,11 +72,25 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
                 calendarCell.Today && Calendar.HighlightToday)
             .AddStyle("border-top",
                 $"1px solid var(--mud-palette-{EnumExtensions.ToDescriptionString(Calendar.Color)})",
-                row == 0 && calendarCell.Today && Calendar.HighlightToday)
+                CalcRow(calendarCell) == 0 && calendarCell.Today && Calendar.HighlightToday)
             .AddStyle("border-bottom",
                 $"1px solid var(--mud-palette-{EnumExtensions.ToDescriptionString(Calendar.Color)})",
-                row + 1 == CellsInDay && calendarCell.Today && Calendar.HighlightToday)
+                CalcRow(calendarCell) + 1 == CellsInDay && calendarCell.Today && Calendar.HighlightToday)
             .Build();
+    }
+
+    protected virtual string DayColumnStyle(DateTime day)
+    {
+        return new StyleBuilder()
+            .AddStyle("border",
+                      $"1px solid var(--mud-palette-{EnumExtensions.ToDescriptionString(Calendar.Color)})", 
+                      day.Date == DateTime.Today.Date && Calendar.HighlightToday)
+            .Build();
+    }
+
+    private int CalcRow(CalendarCell<T> calendarCell)
+    {
+        return (int)(calendarCell.Date.TimeOfDay.TotalMinutes / (int)Calendar.DayTimeInterval);
     }
 
     /// <summary>
@@ -112,14 +130,13 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
     /// Styles for each cell in the view.
     /// </summary>
     /// <param name="cell">The cell being styled.</param>
-    /// <param name="row">The row being styled.</param>
     /// <returns></returns>
-    protected virtual string DayCellClassname(CalendarCell<T> cell, int row)
+    protected virtual string DayCellClassname(CalendarCell<T> cell)
     {
         return new CssBuilder()
             .AddClass("mud-cal-week-cell")
-            .AddClass(Calendar.AdditionalDateTimeClassesFunc?.Invoke(cell.Date.AddMinutes(row * (int)Calendar.DayTimeInterval), View))
-            .AddClass("mud-cal-week-cell-half", !IsHourCell(row))
+            .AddClass(Calendar.AdditionalDateTimeClassesFunc?.Invoke(cell.Date, View))
+            .AddClass("mud-cal-week-cell-half", !IsHourCell(CalcRow(cell)))
             .AddClass("mud-cal-week-not-today", !cell.Today || !Calendar.HighlightToday)
             .Build();
     }
@@ -153,13 +170,12 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
     /// Method invoked when the user clicks on the hyper link in the cell.
     /// </summary>
     /// <param name="cell">The cell that was clicked.</param>
-    /// <param name="row">The row that was clicked.</param>
     /// <returns></returns>
-    protected virtual async Task OnCellLinkClicked(CalendarCell<T> cell, int row)
+    protected virtual async Task OnCellLinkClicked(CalendarCell<T> cell)
     {
-        if (AllowCellLinkClick(cell, row))
+        if (AllowCellLinkClick(cell))
         {
-            var date = cell.Date.AddMinutes(row * (int)Calendar.DayTimeInterval);
+            var date = cell.Date;
             await Calendar.CellClicked.InvokeAsync(date);
         }
     }
@@ -168,12 +184,10 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
     /// Determines if the click event is allowed on a cell.
     /// </summary>
     /// <param name="cell">The cell that was clicked.</param>
-    /// <param name="row">The row that was clicked.</param>
     /// <returns><c>true</c> if the cell can be clicked.</returns>
-    protected virtual bool AllowCellLinkClick(CalendarCell<T> cell, int row)
+    protected virtual bool AllowCellLinkClick(CalendarCell<T> cell)
     {
-        var date = cell.Date.AddMinutes(row * (int)Calendar.DayTimeInterval);
-        return Calendar.CellClicked.HasDelegate && (Calendar.IsDateTimeDisabledFunc == null || !Calendar.IsDateTimeDisabledFunc(date, View));
+        return Calendar.CellClicked.HasDelegate && (Calendar.IsDateTimeDisabledFunc == null || !Calendar.IsDateTimeDisabledFunc(cell.Date, View));
     }
 
     /// <summary>
@@ -307,7 +321,7 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
 
             // Create new position object
             var position = new ItemPosition<T> { Item = item, Position = 0, Total = overlaps.Count + 1, Date = date };
-            position.Top = CalcTop(position);
+            position.Top = 0;
             position.Height = CalcHeight(position);
             if (position.Bottom > PixelsInDay)
             {

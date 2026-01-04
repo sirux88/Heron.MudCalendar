@@ -19,22 +19,26 @@ public class WeekView<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes
         if (range.Start == null || range.End == null) return cells;
         
         var date = range.Start.Value;
-        var lastDate = range.End.Value;
+        var lastDate = range.End.Value.AddDays(1).AddTicks(-1);
         while (date <= lastDate)
         {
             var cell = new CalendarCell<T> { Date = date };
             if (date.Date == DateTime.Today) cell.Today = true;
-            
-            cell.Items = Calendar.Items.Where(i =>
-                    (i.Start.Date == date) || 
-                    (i.Start.Date <= date && i.End.HasValue && i.End.Value > date))
-                .OrderBy(i => i.Start)
-                .ToList();
-            
+
+            cell.Items = Calendar.Items.Where(i => i.Start >= date && i.Start < date.AddMinutes((int)Calendar.DayTimeInterval))
+                    .OrderBy(i=>i.Start)
+                    .ToList();
+            //cell.Items = Calendar.Items.Where(i =>
+            //        (i.Start.Date == date) || 
+            //        (i.Start <= date && i.End.HasValue && i.End.Value > date)
+            //        )
+            //    .OrderBy(i => i.Start)
+            //    .ToList();
+
             cells.Add(cell);
-            
+
             // Next day
-            date = date.AddDays(1);
+            date = date.AddMinutes((int)Calendar.DayTimeInterval);
         }
 
         return cells;

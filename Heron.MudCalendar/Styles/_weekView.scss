@@ -3,18 +3,21 @@
 }
 
 .mud-cal-week-grid {
-  grid-template-columns: 60px repeat(7, 1fr);
-  > div.mud-cal-week-not-today {
-    border-right: 1px solid var(--mud-palette-table-lines);
-  }
-  > div:nth-child(8n) {
-    border-right: none;
-  }
+    grid-template-columns: repeat(var(--columns), 1fr);
+
+
+    > div.mud-cal-week-not-today {
+        border-right: 1px solid var(--mud-palette-table-lines);
+    }
+
+    > div:nth-child(8n) {
+        border-right: none;
+    }
 }
 
 .mud-cal-work-week-grid {
     grid-template-columns: 60px repeat(5, 1fr);
-
+    grid-auto-flow: column;
     > div.mud-cal-week-not-today {
         border-right: 1px solid var(--mud-palette-table-lines);
     }
@@ -34,16 +37,30 @@
   }
 }
 
+.mud-cal-day-time-column {
+    grid-template-columns: 60px;
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+}
+
+.mud-cal-week-day {
+    flex: 1;
+    border: 1px solid var(--mud-palette-table-lines);
+    position: relative;
+}
+
 .mud-cal-work-week-header {
     grid-template-columns: 60px repeat(5, 1fr);
     border-bottom: 1px solid var(--mud-palette-table-lines);
 }
 
 .mud-cal-week-header {
-  grid-template-columns: 60px repeat(7, 1fr);
-  white-space: nowrap;
-  overflow: hidden;
-  border-bottom: 1px solid var(--mud-palette-table-lines);
+    grid-template-columns: 60px repeat(var(--columns), 1fr);
+    white-space: nowrap;
+    overflow: hidden;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
 }
 
 .mud-cal-day-header {
@@ -61,7 +78,11 @@
 }
 
 .mud-cal-time-column {
-  width: 60px;
+    width: 60px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--mud-palette-divider);
+    background-color: var(--mud-palette-background-grey);
+    z-index: 2;
 }
 
 .mud-cal-time-cell {
@@ -74,26 +95,36 @@
 }
 
 .mud-cal-week-scroll {
-  display: block;
-  position: absolute;
-  height: 100%;
-  top: 0;
-  left: 0;
-  overflow-y: scroll;
+    display: flex;
+    flex-direction: row;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    width: 100%;
 }
 
+
 .mud-cal-week-layer {
-  display: block;
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  left: 0;
-  top: 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    background-color: var(--mud-palette-background);
+}
+
+.mud-cal-days-area {
+    flex: 1;
+    min-width:0;
+    position: relative;
+    overflow: hidden;
 }
 
 .mud-cal-week-cell-holder {
-  position: relative;
-  border: none;
+    position: relative;
+    border: 1px solid var(--mud-palette-lines-default);
+    //box-sizing: border-box;
 }
 
 .mud-cal-week-link {

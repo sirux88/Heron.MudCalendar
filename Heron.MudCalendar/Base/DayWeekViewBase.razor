@@ -6,6 +6,7 @@
 @Render
 
 @code {
+
     /// <summary>
     /// Renders the component.
     /// </summary>
@@ -13,11 +14,13 @@
     @<div class="mud-cal-week-view">
         <div class="d-flex flex-column mud-height-full">
             @RenderHeader
-            <div class="flex-grow-1">
-                <div class="d-block relative mud-height-full">
-                    <div @ref="_scrollDiv" class="mud-cal-week-scroll" style="width: 100%;">
-                        <div class="d-block relative">
+            <div class="flex-grow-1 d-flex mud-height-full">
+               
+                <div @ref="_scrollDiv" class="mud-cal-week-scroll">   
+                     <div class="mud-cal-times-column">
                             @RenderTimes
+                        </div>
+                        <div class="mud-cal-days-area">
                             <MudDropContainer
                                 T="T"
                                 Items="Calendar.Items"
@@ -26,14 +29,12 @@
                                 ItemDropped="ItemDropped"
                                 CanDropClass="mud-cal-drop-ok">
                                 <ChildContent>
-                                    @RenderCells
+                                    @RenderDays
                                 </ChildContent>
-                                <ItemRenderer>
-                                    @RenderTemplate(context)
-                                </ItemRenderer>
-                            </MudDropContainer>
-                        </div>
-                    </div>
+                            
+                            
+                            </MudDropContainer> 
+					    </div>
                 </div>
             </div>
         </div>
@@ -44,9 +45,9 @@
     /// </summary>
     protected virtual RenderFragment RenderHeader =>
     @<div>
-        <div class="@HeaderClass">
-            <div></div>
-            @foreach (var cell in Cells)
+        <div class="@HeaderClass" style="--columns:@DaysInView;">
+            <div/>
+            @foreach (var cell in Cells.GroupBy(X=>X.Date.Date).Select(X=>X.First()))
             {
                 <div aria-label="@($"{cell.Date:dddd} {cell.Date.Day}")">
                     @RenderDayTitle(cell)
@@ -69,39 +70,34 @@
     /// Renders the day/week structure.
     /// </summary>
     protected virtual RenderFragment RenderTimes =>
-    @<div class="d-block relative">
-        <div class="@GridClass">
-            @for (var row = 0; row < CellsInDay; row++)
-            {
-                <div class="@TimeCellClassname(row)" style="@CellHeightStyle()">
-                    @if (IsHourCell(row))
-                    {
-                        @DrawTime(row)
-                    }
-                </div>
-                @foreach (var cell in Cells)
+    @<div class="@TimeClass">
+        @for (var row = 0; row < CellsInDay; row++)
+        {
+            <div class="@TimeCellClassname(row)" style="@CellHeightStyle()">
+                @if (IsHourCell(row))
                 {
-                    <div class="@DayCellClassname(cell, row)" style="@DayStyle(cell, row)">
-                        @if (Calendar.ShowCurrentTime && TimelineRow() == row)
-                        {
-                            <hr class="mud-cal-current-time" style="@TimelineStyle()" />
-                        }
-                    </div>
-                }
-            }
-        </div>
-    </div>;
+                    @DrawTime(row)    
+                }                   
+            </div>
+                          
+        }
+    </div>
+    ;
 
     /// <summary>
     /// Renders the cells.
     /// </summary>
-    protected virtual RenderFragment RenderCells =>
+    protected virtual RenderFragment RenderDays =>
     @<div class="mud-cal-week-layer">
-        <div class="@GridClass">
-            <div></div>
-            @foreach (var cell in Cells)
+        <div class="@GridClass" style="--columns:@DaysInView;">
+            @foreach (var row in Cells.GroupBy(X => X.Date.Date))
             {
-                @RenderCell(cell)
+                <div class="mud-cal-week-day" style="@DayColumnStyle(row.Key)" id="@row.Key.ToShortDateString()">
+                    @foreach(var cell in row)
+                    {
+                        @RenderCell(cell)
+                    }             
+                </div>
             }
         </div>
     </div>;
@@ -111,19 +107,15 @@
     /// </summary>
     protected virtual RenderFragment RenderCell(CalendarCell<T> cell) =>
     @<div class="mud-cal-week-cell-holder">
-        @for (var i = 0; i < CellsInDay; i++)
-        {
-            var row = i;
-            <MudDropZone T="T" OnlyZone="true" Style="@CellHeightStyle()" Identifier="@string.Concat(cell.Date.Date.ToString("d"), "_", row.ToString())"
-                         CanDrop="@(item => Calendar.CanDropItem == null || Calendar.CanDropItem(item, cell.Date.AddMinutes(row * (int)Calendar.DayTimeInterval), View))">
-                @if (AllowCellLinkClick(cell, row))
-                {
-                    <MudLink @onclick="() => OnCellLinkClicked(cell, row)" Class="mud-cal-week-cell-link">
-                        <div class="mud-cal-week-link"></div>
-                    </MudLink>
-                }
-            </MudDropZone>
-        }
+        <MudDropZone T="T" OnlyZone="true" Style="@CellHeightStyle()" Identifier="@cell.Date.ToString()"
+                 CanDrop="@(item => Calendar.CanDropItem == null || Calendar.CanDropItem(item, cell.Date, View))">
+            @if (AllowCellLinkClick(cell))
+            {
+                <MudLink @onclick="() => OnCellLinkClicked(cell)" Class="mud-cal-week-cell-link">
+                    <div class="mud-cal-week-link"></div>
+                </MudLink>
+            }
+        </MudDropZone>
         @RenderCellContents(cell)
     </div>;
 
@@ -135,7 +127,7 @@
         var positions = CalcPositions(cell.Items, DateOnly.FromDateTime(cell.Date));
         foreach (var position in positions)
         {
-            if (position.Item.Start.Date == cell.Date.Date)
+            if (position.Item.Start == cell.Date)
             {
                 <WeekDropZone T="T" Position="position" Style="@EventStyle(position)" @key="position.Item.Id">
                     @if (Calendar.EnableResizeItems && !position.Item.IsMultiDay)
