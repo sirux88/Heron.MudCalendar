@@ -14,15 +14,30 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
     private ElementReference _scrollDiv;
     private JsService? _jsService;
 
-    private int PixelsInCell => Calendar.DayCellHeight;
+    private double PixelsInCell => CalcPixelsInCell();
 
     private int CellsInDay => MinutesInDay / (int)Calendar.DayTimeInterval;
-    private int PixelsInDay => CellsInDay * PixelsInCell;
+    private double PixelsInDay => CellsInDay * PixelsInCell;
 
     protected virtual int DaysInView => 7;
     protected virtual CalendarView View => CalendarView.Week;
     protected virtual string HeaderClassname => string.Empty;
     protected virtual string GridClassname => string.Empty;
+
+    private double CalcPixelsInCell()
+    {
+        if(Calendar.DayCellHeight >= 0)
+        {
+            return Calendar.DayCellHeight;
+        }
+        else
+        {
+            double headersize = 21.016;
+            if (Calendar.ShowToolbar) headersize += 36.5 + 2 * Calendar.ToolbarPadding;    
+            return (Calendar.Height - headersize) / CellsInDay;
+        }
+        
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,8 +133,8 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
         var maxWidth = Calendar.EnableParallelItemClick ? 95.0 : 100.0;
         return new StyleBuilder()
             .AddStyle("position", "absolute")
-            .AddStyle("top", $"{position.Top}px")
-            .AddStyle("height", $"{position.Height}px")
+            .AddStyle("top", $"{position.Top.ToInvariantString()}px")
+            .AddStyle("height", $"{position.Height.ToInvariantString()}px")
             .AddStyle("left",
                 (((position.Position / (double)position.Total) - (1.0 / position.Total)) * maxWidth).ToInvariantString() +
                 "%")
@@ -164,7 +179,7 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
     protected virtual string CellHeightStyle()
     {
         return new StyleBuilder()
-            .AddStyle("height", $"{Calendar.DayCellHeight}px")
+            .AddStyle("height", $"{PixelsInCell.ToInvariantString()}px")
             .Build();
     }
 
@@ -341,15 +356,15 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
     }
 
     private double TimelinePosition()
-    {
+    {   
         var minutes = DateTime.Now.Subtract(DateTime.Today).TotalMinutes -
                       (TimelineRow() + InvisibleRows) * (int)Calendar.DayTimeInterval;
-        var position = (minutes / (int)Calendar.DayTimeInterval) * Calendar.DayCellHeight;
-
+        var position = (minutes / (int)Calendar.DayTimeInterval) * PixelsInCell;
+        
         return position;
     }
 
-    private int CalcTop(ItemPosition<T> position)
+    private double CalcTop(ItemPosition<T> position)
     {
         double minutes = 0;
         if (DateOnly.FromDateTime(position.Item.Start.Date) == position.Date)
@@ -360,10 +375,10 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
         var percent = (minutes - InvisibleMinutes) / MinutesInDay;
         var top = PixelsInDay * percent;
 
-        return (int)Math.Round(top);
+        return top;
     }
 
-    private int CalcHeight(ItemPosition<T> position)
+    private double CalcHeight(ItemPosition<T> position)
     {
         double start = 0;
         if (DateOnly.FromDateTime(position.Item.Start.Date) == position.Date)
@@ -393,7 +408,7 @@ public abstract partial class DayWeekViewBase<[DynamicallyAccessedMembers(Dynami
             height = Calendar.DayItemMinHeight;
         }
 
-        return (int)Math.Round(height);
+        return height;
     }
 
     private async Task ScrollToDay(TimeOnly? time = null)

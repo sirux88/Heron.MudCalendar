@@ -306,6 +306,7 @@ public partial class MudCalendar<[DynamicallyAccessedMembers(DynamicallyAccessed
     /// </summary>
     /// <remarks>
     /// Defaults to <c>36</c>.
+    /// <c>-1</c> means auto-height
     /// </remarks>
     [Parameter]
     [Category(CategoryTypes.Calendar.Behavior)]

@@ -52,7 +52,7 @@ public class JsService : IAsyncDisposable
         OnLinkLoaded?.Invoke(this, EventArgs.Empty);
     }
     
-    public async Task AddDragHandler(string id, int width)
+    public async Task AddDragHandler(string id, double width)
     {
         var module = await _moduleTask.Value;
         await module.InvokeVoidAsync("addDragHandler", id, width);
